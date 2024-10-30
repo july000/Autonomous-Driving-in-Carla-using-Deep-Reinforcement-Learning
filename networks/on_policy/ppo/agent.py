@@ -140,10 +140,29 @@ class PPOAgent(object):
             self.checkpoint_file_no -=1
         checkpoint_file = PPO_CHECKPOINT_DIR+self.town+"/ppo_policy_" + str(self.checkpoint_file_no)+"_.pth"
         torch.save(self.old_policy.state_dict(), checkpoint_file)
-   
-    def load(self):
-        self.checkpoint_file_no = len(next(os.walk(PPO_CHECKPOINT_DIR+self.town))[2]) - 1
-        checkpoint_file = PPO_CHECKPOINT_DIR+self.town+"/ppo_policy_" + str(self.checkpoint_file_no)+"_.pth"
-        self.old_policy.load_state_dict(torch.load(checkpoint_file))
-        self.policy.load_state_dict(torch.load(checkpoint_file))
             
+    def load(self):
+        try:
+            checkpoint_dir = PPO_CHECKPOINT_DIR + self.town
+            if not os.path.isdir(checkpoint_dir):
+                raise FileNotFoundError(f"Checkpoint directory '{checkpoint_dir}' does not exist.")
+            
+            files = next(os.walk(checkpoint_dir))[2]
+            self.checkpoint_file_no = len(files) - 1
+            
+            if self.checkpoint_file_no < 0:
+                raise FileNotFoundError("No checkpoint files found in the directory.")
+            
+            checkpoint_file = os.path.join(checkpoint_dir, f"ppo_policy_{self.checkpoint_file_no}_.pth")
+            
+            if not os.path.isfile(checkpoint_file):
+                raise FileNotFoundError(f"Checkpoint file '{checkpoint_file}' does not exist.")
+            
+            print(f"Loading checkpoint file: {checkpoint_file}")
+            
+            self.old_policy.load_state_dict(torch.load(checkpoint_file))
+            self.policy.load_state_dict(torch.load(checkpoint_file))
+            print("Successfully loaded checkpoint.")
+        
+        except Exception as e:
+            print(f"Error occurred while loading checkpoint: {e}")
